@@ -109,5 +109,3 @@ aivm-photo-api/
 - **`FileValidator`** and **`FileStorage`** are deliberately separate classes (SRP). Validation never touches disk; storage never validates.
 - Saved filenames are UUID-based and the extension is derived from the validated `Content-Type`, not the original filename, to prevent path traversal.
 - The storage directory is created automatically on startup if it does not exist.
-
-### Tested
