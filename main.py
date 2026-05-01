@@ -1,4 +1,5 @@
-from fastapi import FastAPI, File, UploadFile
+import subprocess
+from fastapi import FastAPI, File, UploadFile, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
 from config import settings
@@ -27,6 +28,15 @@ async def health() -> dict:
     status_code=201,
     tags=["images"],
 )
+
+
+@app.post("/webhook")
+async def github_webhook(token: str, background_tasks: BackgroundTasks):
+    if token != "my_secret_token_123":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    background_tasks.add_task(subprocess.run, ["/opt/aivm-photo-api/update.sh"])
+    return {"status": "Update triggered"}
+
 async def upload_image(file: UploadFile = File(...)) -> UploadResponse:
     content = await file.read()
     _validator.validate(file, content)
