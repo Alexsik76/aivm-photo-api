@@ -75,6 +75,25 @@ Upload a single image. The request must use `multipart/form-data`.
 | `413`  | File exceeds `MAX_FILE_SIZE_MB`          |
 | `415`  | Content type not in the accepted list    |
 
+### `POST /webhook`
+
+GitHub webhook endpoint for automatic deployment. Triggers code update (`git pull`), dependency installation, and service restart via a background task.
+
+| Query Parameter | Type   | Required | Description                     |
+|-----------------|--------|----------|---------------------------------|
+| `token`         | string | yes      | Secret token for authentication |
+
+**Response `200`**
+```json
+{ "status": "Update triggered" }
+
+**Error responses**
+
+| Status | Cause                                    |
+|--------|------------------------------------------|
+| `403`  | Invalid or missing authentication token  |
+
+
 ## Project structure
 
 ```
