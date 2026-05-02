@@ -1,111 +1,109 @@
 # aivm-photo-api
 
-REST API for receiving and storing images submitted by AI agents.
+REST API for receiving and storing photos of blood-pressure-monitor screens with metadata for machine learning. 
+For more context, see [plan_blood_pressure_ml.md](docs/plan_blood_pressure_ml.md).
 
-## Requirements
-
-- Python 3.9+
-- pip
-
-## Installation
-
-```bash
-pip install -r requirements.txt
-```
-
-## Configuration
-
-All settings are controlled via environment variables. Defaults are shown below.
-
-| Variable           | Default         | Description                        |
-|--------------------|-----------------|------------------------------------|
-| `STORAGE_PATH`     | `/mnt/dataset`  | Directory where images are saved   |
-| `MAX_FILE_SIZE_MB` | `50`            | Maximum allowed upload size in MB  |
-
-**Accepted content types:** `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/bmp`, `image/tiff`
-
-## Running
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-For development with auto-reload:
-
-```bash
-uvicorn main:app --reload
-```
-
-Interactive API docs are available at `http://localhost:8000/docs`.
-
-## API
-
-### `GET /health`
-
-Liveness check.
-
-**Response `200`**
-```json
-{ "status": "ok" }
-```
-
----
+## API Contract
 
 ### `POST /images/upload`
 
-Upload a single image. The request must use `multipart/form-data`.
+Upload an image with metadata. Requires Bearer token authentication.
 
-| Field  | Type   | Required | Description     |
-|--------|--------|----------|-----------------|
-| `file` | binary | yes      | Image to upload |
+**Authentication:** `Authorization: Bearer <API_TOKEN>`
 
-**Response `201`**
+**Request:** `multipart/form-data`
+- `file`: Image bytes (JPG, PNG, etc.)
+- `metadata`: JSON string matching the `PhotoMetadata` schema.
+
+**Metadata Example:**
 ```json
 {
-  "filename": "a3f1c8e2...d4.jpg",
-  "size_bytes": 204800,
-  "content_type": "image/jpeg"
+  "sys": 120,
+  "dia": 80,
+  "pul": 70,
+  "timestamp": "2026-05-02T10:00:00+03:00",
+  "device_model": "Paramed Expert-X",
+  "source": "user_confirmed",
+  "corrected_by_user": false
 }
 ```
 
-**Error responses**
-
-| Status | Cause                                    |
-|--------|------------------------------------------|
-| `413`  | File exceeds `MAX_FILE_SIZE_MB`          |
-| `415`  | Content type not in the accepted list    |
-
-### `POST /webhook`
-
-GitHub webhook endpoint for automatic deployment. Triggers code update (`git pull`), dependency installation, and service restart via a background task.
-
-| Query Parameter | Type   | Required | Description                     |
-|-----------------|--------|----------|---------------------------------|
-| `token`         | string | yes      | Secret token for authentication |
-
-**Response `200`**
+**Success Response (201):**
 ```json
-{ "status": "Update triggered" }
-
-**Error responses**
-
-| Status | Cause                                    |
-|--------|------------------------------------------|
-| `403`  | Invalid or missing authentication token  |
-
-
-## Project structure
-
-```
-aivm-photo-api/
-├── main.py          # FastAPI app and endpoint definitions
-├── storage.py       # FileValidator and FileStorage classes
-├── config.py        # Settings resolved from environment variables
-└── requirements.txt
+{
+  "filename": "20260502_100000.jpg",
+  "folder": "2026-05",
+  "size_bytes": 234567
+}
 ```
 
-## Architecture notes
+**Status Codes:**
+- `201`: Success
+- `401`: Unauthorized (missing or invalid token)
+- `409`: Conflict (photo for this timestamp already exists)
+- `413`: File size too large
+- `415`: Unsupported image format
+- `422`: Validation error (invalid metadata)
 
-- **`FileValidator`** and **`FileStorage`** are deliberately separate classes (SRP). Validation never touches disk; storage never validates.
-- Saved filenames are UUID-based and the extension is derived from the validated `Content-Type`, not the original filename, to prevent path traversal.
-- The storage directory is created automatically on startup if it does not exist.
+### `GET /health`
+
+Liveness check. Returns `{"status": "ok"}`.
+
+## Local Development
+
+1. Create a virtual environment:
+   ```bash
+   python -m venv .venv
+   .\.venv\Scripts\activate  # Windows
+   source .venv/bin/activate # Linux/macOS
+   ```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Set environment variables (or create `.env`):
+   ```
+   API_TOKEN=your-secret-token
+   STORAGE_PATH=./data/photos
+   ```
+4. Run locally:
+   ```bash
+   uvicorn main:app --reload
+   ```
+
+## Running Tests
+
+```bash
+$env:PYTHONPATH="."; .\.venv\Scripts\pytest -v
+```
+
+## Deployment
+
+The service is containerised and deployed via Docker Compose. The Compose stack mounts the TrueNAS SMB share directly via a named volume; the host requires no fstab entry. NAS credentials are provided via `.env` (`NAS_USER`, `NAS_PASSWORD`).
+
+To deploy:
+```bash
+docker-compose up -d --build
+```
+
+## Storage Layout
+
+Files are stored on the SMB share in the following structure:
+```
+/data/photos/
+  2026-04/
+    20260417_093532.jpg
+    20260417_093532.json
+  2026-05/
+    ...
+```
+
+## Environment Variables
+
+| Variable           | Required | Default        | Description                          |
+|--------------------|----------|----------------|--------------------------------------|
+| `API_TOKEN`        | Yes      | -              | Bearer token for authentication      |
+| `STORAGE_PATH`     | No       | `/data/photos` | Path to store images and metadata    |
+| `MAX_FILE_SIZE_MB` | No       | `50`           | Maximum allowed upload size in MB    |
+| `NAS_USER`         | Yes      | -              | Username for NAS SMB share           |
+| `NAS_PASSWORD`     | Yes      | -              | Password for NAS SMB share           |

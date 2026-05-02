@@ -157,6 +157,14 @@ ENV/
 env.bak/
 venv.bak/
 
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# pytest
+.pytest_cache/
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -216,3 +224,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# docs
+docs/

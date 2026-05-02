@@ -1,0 +1,26 @@
+services:
+  photo-api:
+    build: .
+    image: aivm-photo-api:latest
+    container_name: aivm-photo-api
+    env_file:
+      - .env
+    volumes:
+      - photos:/data/photos
+    ports:
+      - "8010:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8010/health').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  photos:
+    driver: local
+    driver_opts:
+      type: cifs
+      o: "username=${NAS_USER},password=${NAS_PASSWORD},uid=1000,gid=1000,iocharset=utf8"
+      device: "//nas.lan/media/aivm_folder"

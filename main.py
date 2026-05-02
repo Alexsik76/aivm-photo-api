@@ -1,9 +1,11 @@
-import subprocess
-from fastapi import FastAPI, File, UploadFile, BackgroundTasks, HTTPException
-from pydantic import BaseModel
+import json
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form
+from pydantic import BaseModel, ValidationError
 
 from config import settings
 from storage import FileStorage, FileValidator
+from auth import require_token
+from schemas import PhotoMetadata
 
 app = FastAPI(title="aivm-photo-api", version="0.1.0")
 
@@ -13,8 +15,8 @@ _storage = FileStorage(settings)
 
 class UploadResponse(BaseModel):
     filename: str
+    folder: str
     size_bytes: int
-    content_type: str
 
 
 @app.get("/health", tags=["ops"])
@@ -27,23 +29,30 @@ async def health() -> dict:
     response_model=UploadResponse,
     status_code=201,
     tags=["images"],
+    dependencies=[Depends(require_token)],
 )
+async def upload_image(
+    file: UploadFile = File(...),
+    metadata: str = Form(...),
+) -> UploadResponse:
+    # 1. Parse and validate metadata
+    try:
+        metadata_json = json.loads(metadata)
+        photo_metadata = PhotoMetadata(**metadata_json)
+    except (json.JSONDecodeError, ValidationError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
-
-@app.post("/webhook")
-async def github_webhook(token: str, background_tasks: BackgroundTasks):
-    if token != "my_secret_token_123":
-        raise HTTPException(status_code=403, detail="Forbidden")
-    background_tasks.add_task(subprocess.run, ["/opt/aivm-photo-api/update.sh"])
-    return {"status": "Update triggered"}
-
-async def upload_image(file: UploadFile = File(...)) -> UploadResponse:
+    # 2. Read and validate file
     content = await file.read()
     _validator.validate(file, content)
-    content_type = file.content_type or ""
-    filename = _storage.save(content, content_type)
+    
+    # 3. Save
+    folder, filename = _storage.save_with_metadata(
+        content, file.content_type or "", photo_metadata
+    )
+    
     return UploadResponse(
         filename=filename,
+        folder=folder,
         size_bytes=len(content),
-        content_type=content_type,
     )
