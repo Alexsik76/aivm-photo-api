@@ -3,8 +3,10 @@ services:
     build: .
     image: aivm-photo-api:latest
     container_name: aivm-photo-api
-    env_file:
-      - .env
+    environment:
+      API_TOKEN: ${API_TOKEN}
+      STORAGE_PATH: ${STORAGE_PATH:-/data/photos}
+      MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-50}
     volumes:
       - photos:/data/photos
     ports:
