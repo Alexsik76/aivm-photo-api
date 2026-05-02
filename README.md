@@ -3,6 +3,14 @@
 REST API for receiving and storing photos of blood-pressure-monitor screens with metadata for machine learning. 
 For more context, see [plan_blood_pressure_ml.md](docs/plan_blood_pressure_ml.md).
 
+## Who calls this service
+
+The only client today is **[bptracker-backend](../bptracker-backend/README.md)** (`PhotoApiService` class).
+
+- **Flow:** When a user saves a measurement that originated from a photo, the backend saves the record to its DB and then asynchronously forwards the photo + metadata to this service.
+- **Reliability:** The call is "fire-and-forget" from the backend's perspective. It does not retry on failure; photos lost during an outage are not recovered.
+- **Authentication:** Requires a static Bearer token (`PHOTO_API_TOKEN` in both repos).
+
 ## API Contract
 
 ### `POST /images/upload`
@@ -15,7 +23,7 @@ Upload an image with metadata. Requires Bearer token authentication.
 - `file`: Image bytes (JPG, PNG, etc.)
 - `metadata`: JSON string matching the `PhotoMetadata` schema.
 
-**Metadata Example:**
+**Metadata Example (Uncorrected):**
 ```json
 {
   "sys": 120,
@@ -25,6 +33,24 @@ Upload an image with metadata. Requires Bearer token authentication.
   "device_model": "Paramed Expert-X",
   "source": "user_confirmed",
   "corrected_by_user": false
+}
+```
+
+**Metadata Example (Corrected by user):**
+```json
+{
+  "sys": 125,
+  "dia": 82,
+  "pul": 70,
+  "timestamp": "2026-05-02T10:05:00+03:00",
+  "device_model": "Paramed Expert-X",
+  "source": "user_confirmed",
+  "corrected_by_user": true,
+  "gemini_suggested": {
+    "sys": 120,
+    "dia": 80,
+    "pul": 70
+  }
 }
 ```
 
@@ -39,15 +65,21 @@ Upload an image with metadata. Requires Bearer token authentication.
 
 **Status Codes:**
 - `201`: Success
-- `401`: Unauthorized (missing or invalid token)
-- `409`: Conflict (photo for this timestamp already exists)
+- `401`: Unauthorized
+- `409`: Conflict (already exists)
 - `413`: File size too large
 - `415`: Unsupported image format
-- `422`: Validation error (invalid metadata)
+- `422`: Validation error
 
 ### `GET /health`
 
 Liveness check. Returns `{"status": "ok"}`.
+
+## Verifying integration
+
+- **Storage:** Check `<STORAGE_PATH>/YYYY-MM/` for incoming files. Each upload creates a `.jpg` and a `.json` sidecar.
+- **Metadata:** Verify `corrected_by_user` and `gemini_suggested` fields accurately reflect user interaction in BP Tracker.
+- **Logs:** View container logs for errors: `docker logs aivm-photo-api`.
 
 ## Local Development
 
@@ -79,7 +111,7 @@ $env:PYTHONPATH="."; .\.venv\Scripts\pytest -v
 
 ## Deployment
 
-The service is containerised and deployed via Docker Compose. The Compose stack mounts the TrueNAS SMB share directly via a named volume; the host requires no fstab entry. NAS credentials are provided via `.env` (`NAS_USER`, `NAS_PASSWORD`).
+The service is containerised and deployed via Docker Compose. The Compose stack mounts the TrueNAS SMB share directly via a named volume. NAS credentials are provided via `.env` (`NAS_USER`, `NAS_PASSWORD`).
 
 To deploy:
 ```bash
