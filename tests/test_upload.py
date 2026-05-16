@@ -8,7 +8,8 @@ from pathlib import Path
 os.environ["API_TOKEN"] = "test-token"
 os.environ["STORAGE_PATH"] = "/tmp/test-photos"
 
-from main import app, settings
+from app.main import app
+from app.config import settings
 
 client = TestClient(app)
 

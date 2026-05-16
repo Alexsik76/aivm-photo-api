@@ -1,27 +1,21 @@
-FROM python:3.12-slim
-
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Create non-root user
-RUN groupadd -g 1000 app && \
-    useradd -u 1000 -g app -m -s /bin/bash app
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies
+# Install system dependencies (though headless opencv might not need them, it's safer)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+COPY app/ ./app/
+COPY models/ ./models/
 
-# Ensure app directory is owned by app user
-RUN chown -R app:app /app
-
-USER app
+# Ensure storage path exists in the container (mount point)
+RUN mkdir -p /data/photos
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

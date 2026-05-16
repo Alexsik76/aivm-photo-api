@@ -1,5 +1,66 @@
 # aivm-photo-api
 
+FastAPI service for storing blood pressure monitor photos and recognizing digits using ML.
+
+## Features
+
+- **Store photos**: Saves photos and metadata to an SMB-mounted NAS share.
+- **ML Recognition**: Recognizes SYS, DIA, and PUL values from photos using YOLOv8 models.
+- **Local Processing**: Recognition happens entirely on CPU in ~50ms.
+
+## API Endpoints
+
+### 1. Recognition
+`POST /images/recognize`
+
+Recognizes blood pressure values from an uploaded image.
+
+**Request:**
+- `file`: image bytes (multipart/form-data)
+
+**Response (200 OK):**
+```json
+{
+  "sys": 125,
+  "dia": 74,
+  "pul": 73,
+  "confidence": 0.87,
+  "elapsed_ms": 52
+}
+```
+
+### 2. Upload
+`POST /images/upload`
+
+Stores the photo and metadata to disk.
+
+**Request:**
+- `file`: image bytes
+- `metadata`: JSON string with photo details
+
+### 3. Health
+`GET /health` -> `{"status": "ok"}`
+
+## Installation & Deployment
+
+### Manual Model Setup
+Before building the container, you must manually copy the trained YOLOv8 models from the `bp-ocr-cnn` project:
+1. `bp-ocr-cnn/runs/detect/display_detector_v1/weights/best.pt` -> `models/display.pt`
+2. `bp-ocr-cnn/runs/detect/digit_detector_latest/weights/best.pt` -> `models/digits.pt`
+
+### Docker Compose
+```bash
+docker-compose up -d --build
+```
+
+## Project Structure
+The project is organized as a package in the `app/` directory:
+- `app/main.py`: Entry point, lifespan, and route registration.
+- `app/ml/`: ML pipeline, postprocessing, and model loading.
+- `app/routes/`: API route handlers.
+- `app/storage.py`: File storage and validation logic.
+- `models/`: YOLO model files.
+
 REST API for receiving and storing photos of blood-pressure-monitor screens with metadata for machine learning. 
 For more context, see [plan_blood_pressure_ml.md](docs/plan_blood_pressure_ml.md).
 
