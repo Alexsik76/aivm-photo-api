@@ -17,7 +17,7 @@ class RecognizeResponse(BaseModel):
     confidence: float
     elapsed_ms: int
 
-class GeminiSuggestion(BaseModel):
+class AISuggestion(BaseModel):
     sys: int = Field(..., ge=50, le=300)
     dia: int = Field(..., ge=30, le=200)
     pul: int = Field(..., ge=30, le=250)
@@ -30,7 +30,7 @@ class PhotoMetadata(BaseModel):
     device_model: str
     source: Literal["user_confirmed", "gemini_auto", "manual"]
     corrected_by_user: bool
-    gemini_suggested: GeminiSuggestion | None = None
+    ai_suggested: AISuggestion | None = None
     notes: str | None = None
     quality_flags: dict | None = None
 
