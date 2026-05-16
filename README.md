@@ -107,7 +107,7 @@ Upload an image with metadata. Requires Bearer token authentication.
   "device_model": "Paramed Expert-X",
   "source": "user_confirmed",
   "corrected_by_user": true,
-  "gemini_suggested": {
+  "ai_suggested": {
     "sys": 120,
     "dia": 80,
     "pul": 70
@@ -139,7 +139,7 @@ Liveness check. Returns `{"status": "ok"}`.
 ## Verifying integration
 
 - **Storage:** Check `<STORAGE_PATH>/YYYY-MM/` for incoming files. Each upload creates a `.jpg` and a `.json` sidecar.
-- **Metadata:** Verify `corrected_by_user` and `gemini_suggested` fields accurately reflect user interaction in BP Tracker.
+- **Metadata:** Verify `corrected_by_user` and `ai_suggested` fields accurately reflect user interaction in BP Tracker.
 - **Logs:** View container logs for errors: `docker logs aivm-photo-api`.
 
 ## Local Development
