@@ -2,9 +2,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies (though headless opencv might not need them, it's safer)
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libxcb1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
