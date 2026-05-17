@@ -92,7 +92,7 @@ Upload an image with metadata. Requires Bearer token authentication.
   "pul": 70,
   "timestamp": "2026-05-02T10:00:00+03:00",
   "device_model": "Paramed Expert-X",
-  "source": "user_confirmed",
+  "source": "local_ocr",
   "corrected_by_user": false
 }
 ```
@@ -105,7 +105,7 @@ Upload an image with metadata. Requires Bearer token authentication.
   "pul": 70,
   "timestamp": "2026-05-02T10:05:00+03:00",
   "device_model": "Paramed Expert-X",
-  "source": "user_confirmed",
+  "source": "gemini",
   "corrected_by_user": true,
   "ai_suggested": {
     "sys": 120,

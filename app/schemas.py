@@ -28,7 +28,7 @@ class PhotoMetadata(BaseModel):
     pul: int = Field(..., ge=30, le=250)
     timestamp: datetime
     device_model: str
-    source: Literal["user_confirmed", "gemini_auto", "manual"]
+    source: Literal["local_ocr", "gemini", "gemini_auto", "manual", "user_confirmed"]
     corrected_by_user: bool
     ai_suggested: AISuggestion | None = None
     notes: str | None = None
