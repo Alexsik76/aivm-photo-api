@@ -5,6 +5,24 @@ from pydantic import BaseModel, Field, field_validator
 class HealthResponse(BaseModel):
     status: str
 
+class OcrInferenceMs(BaseModel):
+    display: int
+    digits: int
+    postprocess: int
+
+class OcrConfidence(BaseModel):
+    min: float
+    mean: float
+
+class OcrMeta(BaseModel):
+    engine: Literal["local", "gemini", "manual"]
+    model_version: str | None = None
+    inference_ms: OcrInferenceMs | None = None
+    confidence: OcrConfidence | None = None
+    fallback_reason: Literal["low_confidence", "no_display", "wrong_row_count", "user_requested"] | None = None
+    user_agent: str | None = None
+    hw_concurrency: int | None = None
+
 class UploadResponse(BaseModel):
     filename: str
     folder: str
@@ -32,6 +50,7 @@ class PhotoMetadata(BaseModel):
     corrected_by_user: bool
     ai_suggested: AISuggestion | None = None
     notes: str | None = None
+    ocr_meta: OcrMeta | None = None
 
     @field_validator("timestamp")
     @classmethod

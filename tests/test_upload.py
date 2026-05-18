@@ -1,3 +1,4 @@
+import json
 import os
 import pytest
 from fastapi.testclient import TestClient
@@ -79,6 +80,25 @@ def test_upload_collision(temp_storage):
     response2 = _upload(BASE_FIELDS)
     assert response2.status_code == 409
     assert response2.json()["detail"] == "photo for this timestamp already exists"
+
+def test_upload_with_ocr_meta(temp_storage):
+    ocr_meta = json.dumps({
+        "engine": "local",
+        "model_version": "int8_v1",
+        "inference_ms": {"display": 120, "digits": 95, "postprocess": 5},
+        "confidence": {"min": 0.71, "mean": 0.84},
+        "fallback_reason": None,
+        "user_agent": "Mozilla/5.0",
+        "hw_concurrency": 8,
+    })
+    fields = {**BASE_FIELDS, "timestamp": "2026-05-02T14:00:00+03:00", "ocr_meta": ocr_meta}
+    response = _upload(fields)
+    assert response.status_code == 201
+
+def test_upload_with_invalid_ocr_meta():
+    fields = {**BASE_FIELDS, "ocr_meta": "not-valid-json"}
+    response = _upload(fields)
+    assert response.status_code == 422
 
 def test_upload_file_too_large():
     settings.max_file_size_mb = 0

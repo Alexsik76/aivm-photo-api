@@ -34,9 +34,7 @@ Recognizes blood pressure values from an uploaded image.
 
 Stores the photo and metadata to disk.
 
-**Request:**
-- `file`: image bytes
-- `metadata`: JSON string with photo details
+**Request:** `multipart/form-data` — flat form fields (see full API Contract section below).
 
 ### 3. Health
 `GET /health` -> `{"status": "ok"}`
@@ -80,40 +78,38 @@ Upload an image with metadata. Requires Bearer token authentication.
 
 **Authentication:** `Authorization: Bearer <API_TOKEN>`
 
-**Request:** `multipart/form-data`
-- `file`: Image bytes (JPG, PNG, etc.)
-- `metadata`: JSON string matching the `PhotoMetadata` schema.
+**Request:** `multipart/form-data` — all fields are individual form params.
 
-**Metadata Example (Uncorrected):**
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `file` | image bytes | Yes | JPG, PNG, etc. |
+| `sys` | int | Yes | 50–300 |
+| `dia` | int | Yes | 30–200 |
+| `pul` | int | Yes | 30–250 |
+| `timestamp` | datetime (ISO 8601 with TZ) | Yes | e.g. `2026-05-02T10:00:00+03:00` |
+| `source` | enum | Yes | `local_ocr`, `gemini`, `gemini_auto`, `manual`, `user_confirmed` |
+| `corrected_by_user` | bool | Yes | `true` / `false` |
+| `device_model` | string | No | defaults to `"unknown"` |
+| `ai_suggested_sys` | int | No | 50–300 |
+| `ai_suggested_dia` | int | No | 30–200 |
+| `ai_suggested_pul` | int | No | 30–250 |
+| `notes` | string | No | |
+| `ocr_meta` | JSON string | No | `OcrMeta` schema (see below) |
+
+**`ocr_meta` JSON schema:**
 ```json
 {
-  "sys": 120,
-  "dia": 80,
-  "pul": 70,
-  "timestamp": "2026-05-02T10:00:00+03:00",
-  "device_model": "Paramed Expert-X",
-  "source": "local_ocr",
-  "corrected_by_user": false
+  "engine": "local",
+  "model_version": "int8_v1",
+  "inference_ms": { "display": 120, "digits": 95, "postprocess": 5 },
+  "confidence": { "min": 0.71, "mean": 0.84 },
+  "fallback_reason": null,
+  "user_agent": "Mozilla/5.0 ...",
+  "hw_concurrency": 8
 }
 ```
 
-**Metadata Example (Corrected by user):**
-```json
-{
-  "sys": 125,
-  "dia": 82,
-  "pul": 70,
-  "timestamp": "2026-05-02T10:05:00+03:00",
-  "device_model": "Paramed Expert-X",
-  "source": "gemini",
-  "corrected_by_user": true,
-  "ai_suggested": {
-    "sys": 120,
-    "dia": 80,
-    "pul": 70
-  }
-}
-```
+The OpenAPI spec is generated via `python export_openapi.py` and committed as `openapi.json`. Frontend TypeScript types are generated from it via `npm run generate:types` in `bptracker-frontend`.
 
 **Success Response (201):**
 ```json

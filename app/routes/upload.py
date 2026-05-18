@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from app.config import settings
 from app.storage import FileStorage, FileValidator
 from app.auth import require_token
-from app.schemas import PhotoMetadata, AISuggestion, UploadResponse
+from app.schemas import PhotoMetadata, AISuggestion, OcrMeta, UploadResponse
 
 router = APIRouter()
 
@@ -33,11 +33,16 @@ async def upload_image(
     ai_suggested_dia: Optional[int] = Form(None, ge=30, le=200),
     ai_suggested_pul: Optional[int] = Form(None, ge=30, le=250),
     notes: Optional[str] = Form(None),
+    ocr_meta: Optional[str] = Form(None),
 ) -> UploadResponse:
     try:
         ai_suggested = None
         if ai_suggested_sys is not None and ai_suggested_dia is not None and ai_suggested_pul is not None:
             ai_suggested = AISuggestion(sys=ai_suggested_sys, dia=ai_suggested_dia, pul=ai_suggested_pul)
+
+        parsed_ocr_meta = None
+        if ocr_meta:
+            parsed_ocr_meta = OcrMeta.model_validate_json(ocr_meta)
 
         photo_metadata = PhotoMetadata(
             sys=sys,
@@ -49,6 +54,7 @@ async def upload_image(
             corrected_by_user=corrected_by_user,
             ai_suggested=ai_suggested,
             notes=notes,
+            ocr_meta=parsed_ocr_meta,
         )
     except (ValueError, ValidationError) as e:
         raise HTTPException(status_code=422, detail=str(e))

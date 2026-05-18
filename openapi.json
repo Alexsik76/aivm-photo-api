@@ -240,6 +240,17 @@
               }
             ],
             "title": "Notes"
+          },
+          "ocr_meta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OcrMeta"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Meta"
           }
         },
         "type": "object",
@@ -375,6 +386,141 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "OcrConfidence": {
+        "properties": {
+          "min": {
+            "title": "Min",
+            "type": "number"
+          },
+          "mean": {
+            "title": "Mean",
+            "type": "number"
+          }
+        },
+        "required": [
+          "min",
+          "mean"
+        ],
+        "title": "OcrConfidence",
+        "type": "object"
+      },
+      "OcrInferenceMs": {
+        "properties": {
+          "display": {
+            "title": "Display",
+            "type": "integer"
+          },
+          "digits": {
+            "title": "Digits",
+            "type": "integer"
+          },
+          "postprocess": {
+            "title": "Postprocess",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "display",
+          "digits",
+          "postprocess"
+        ],
+        "title": "OcrInferenceMs",
+        "type": "object"
+      },
+      "OcrMeta": {
+        "properties": {
+          "engine": {
+            "enum": [
+              "local",
+              "gemini",
+              "manual"
+            ],
+            "title": "Engine",
+            "type": "string"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Model Version"
+          },
+          "inference_ms": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OcrInferenceMs"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OcrConfidence"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "low_confidence",
+                  "no_display",
+                  "wrong_row_count",
+                  "user_requested"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fallback Reason"
+          },
+          "user_agent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "User Agent"
+          },
+          "hw_concurrency": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Hw Concurrency"
+          }
+        },
+        "required": [
+          "engine"
+        ],
+        "title": "OcrMeta",
+        "type": "object"
       }
     },
     "securitySchemes": {
