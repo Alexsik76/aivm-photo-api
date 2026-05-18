@@ -1,11 +1,12 @@
-import json
+from datetime import datetime
+from typing import Literal, Optional
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from app.config import settings
 from app.storage import FileStorage, FileValidator
 from app.auth import require_token
-from app.schemas import PhotoMetadata, UploadResponse
+from app.schemas import PhotoMetadata, AISuggestion, UploadResponse
 
 router = APIRouter()
 
@@ -21,26 +22,42 @@ _storage = FileStorage(settings)
 )
 async def upload_image(
     file: UploadFile = File(...),
-    metadata: str = Form(...),
+    sys: int = Form(..., ge=50, le=300),
+    dia: int = Form(..., ge=30, le=200),
+    pul: int = Form(..., ge=30, le=250),
+    timestamp: datetime = Form(...),
+    source: Literal["local_ocr", "gemini", "gemini_auto", "manual", "user_confirmed"] = Form(...),
+    corrected_by_user: bool = Form(...),
+    device_model: Optional[str] = Form(None),
+    ai_suggested_sys: Optional[int] = Form(None, ge=50, le=300),
+    ai_suggested_dia: Optional[int] = Form(None, ge=30, le=200),
+    ai_suggested_pul: Optional[int] = Form(None, ge=30, le=250),
+    notes: Optional[str] = Form(None),
 ) -> UploadResponse:
-    # 1. Parse and validate metadata
     try:
-        metadata_json = json.loads(metadata)
-        photo_metadata = PhotoMetadata(**metadata_json)
-    except (json.JSONDecodeError, ValidationError) as e:
+        ai_suggested = None
+        if ai_suggested_sys is not None and ai_suggested_dia is not None and ai_suggested_pul is not None:
+            ai_suggested = AISuggestion(sys=ai_suggested_sys, dia=ai_suggested_dia, pul=ai_suggested_pul)
+
+        photo_metadata = PhotoMetadata(
+            sys=sys,
+            dia=dia,
+            pul=pul,
+            timestamp=timestamp,
+            device_model=device_model or "unknown",
+            source=source,
+            corrected_by_user=corrected_by_user,
+            ai_suggested=ai_suggested,
+            notes=notes,
+        )
+    except (ValueError, ValidationError) as e:
         raise HTTPException(status_code=422, detail=str(e))
 
-    # 2. Read and validate file
     content = await file.read()
     _validator.validate(file, content)
-    
-    # 3. Save
+
     folder, filename = _storage.save_with_metadata(
         content, file.content_type or "", photo_metadata
     )
-    
-    return UploadResponse(
-        filename=filename,
-        folder=folder,
-        size_bytes=len(content),
-    )
+
+    return UploadResponse(filename=filename, folder=folder, size_bytes=len(content))

@@ -27,12 +27,11 @@ class PhotoMetadata(BaseModel):
     dia: int = Field(..., ge=30, le=200)
     pul: int = Field(..., ge=30, le=250)
     timestamp: datetime
-    device_model: str
+    device_model: str = "unknown"
     source: Literal["local_ocr", "gemini", "gemini_auto", "manual", "user_confirmed"]
     corrected_by_user: bool
     ai_suggested: AISuggestion | None = None
     notes: str | None = None
-    quality_flags: dict | None = None
 
     @field_validator("timestamp")
     @classmethod
